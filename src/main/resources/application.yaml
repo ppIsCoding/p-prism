@@ -1,0 +1,31 @@
+spring:
+  profiles:
+    active: local
+  application:
+    name: P-Prism
+  ai:
+    dashscope:
+      api-key: ${AI_DASHSCOPE_API_KEY}
+      chat:
+        options:
+          model: qwen3.8-27b
+          multi-model: true
+
+server:
+  port: 8123
+  servlet:
+    context-path: /api
+# springdoc-openapi
+springdoc:
+  group-configs:
+    - group: 'default'
+      packages-to-scan: com.pp.pprism.controller
+# knife4j
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+
+logging:
+  level:
+    org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor: debug
