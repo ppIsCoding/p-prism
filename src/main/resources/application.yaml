@@ -10,7 +10,16 @@ spring:
         options:
           model: qwen3.8-27b
           multi-model: true
-
+    vectorstore:
+      pgvector:
+        index-type: HNSW
+        dimensions: 1024
+        distance-type: COSINE_DISTANCE
+        max-document-batch-size: 10000 # Optional: Maximum number of documents per batch
+  datasource:
+    url: jdbc:postgresql://localhost:5433/p-prism
+    username: postgres
+    password: root
 server:
   port: 8123
   servlet:

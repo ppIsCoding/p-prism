@@ -2,17 +2,24 @@ package com.pp.pprism.app;
 
 import com.pp.pprism.advisor.MyLoggerAdvisor;
 import com.pp.pprism.chatmemory.FileBasedChatMemory;
+import com.pp.pprism.rag.LoveAppContextualQueryAugmenterFactory;
+import com.pp.pprism.rag.PgVectorVectorStoreConfig;
+import com.pp.pprism.rag.QueryRewriter;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
+import org.springframework.ai.chat.client.advisor.RetrievalAugmentationAdvisor;
 import org.springframework.ai.chat.client.advisor.SimpleLoggerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
+import org.springframework.ai.rag.preretrieval.query.transformation.QueryTransformer;
 import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -88,16 +95,18 @@ public class LoveApp {
         log.info("loveReport: {}", loveReport);
         return loveReport;
     }
-
     @Resource
-    private VectorStore loveAppVectorStore;
-
+    private RetrievalAugmentationAdvisor ragAdvisor;
+    @Resource
+    private QueryRewriter queryRewriter;
     public String doChatWithRag(String message, String chatId) {
         ChatResponse chatResponse = chatClient
                 .prompt()
                 .user(message)
                 // 应用知识库问答
-                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
+//                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
+                //使用RetrievalAugmentationAdvisor
+                .advisors(ragAdvisor)
                 .call()
                 .chatResponse();
         String content = chatResponse.getResult().getOutput().getText();

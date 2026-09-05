@@ -69,6 +69,27 @@
             <artifactId>spring-ai-markdown-document-reader</artifactId>
             <version>1.0.0-M6</version>
         </dependency>
+<!--        自动整合 pgVector 会自动注入-->
+<!--        <dependency>-->
+<!--            <groupId>org.springframework.ai</groupId>-->
+<!--            <artifactId>spring-ai-starter-vector-store-pgvector</artifactId>-->
+<!--            <version>1.0.0-M7</version>-->
+<!--        </dependency>-->
+<!--        手动注入 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-jdbc</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-pgvector-store</artifactId>
+            <version>1.0.0-M6</version>
+        </dependency>
 
         <!--knife4j-->
         <dependency>
@@ -142,6 +163,11 @@
                         </configuration>
                     </execution>
                 </executions>
+                <configuration>
+                    <source>21</source>
+                    <target>21</target>
+                    <compilerArgs>--enable-preview</compilerArgs>
+                </configuration>
             </plugin>
         </plugins>
     </build>
