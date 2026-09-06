@@ -5,6 +5,7 @@ import com.pp.pprism.chatmemory.FileBasedChatMemory;
 import com.pp.pprism.rag.LoveAppContextualQueryAugmenterFactory;
 import com.pp.pprism.rag.PgVectorVectorStoreConfig;
 import com.pp.pprism.rag.QueryRewriter;
+import com.pp.pprism.tools.WeatherTools;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.client.ChatClient;
@@ -18,6 +19,8 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
 import org.springframework.ai.rag.preretrieval.query.transformation.QueryTransformer;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbacks;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
 import org.springframework.stereotype.Component;
@@ -42,7 +45,7 @@ public class LoveApp {
 
     public LoveApp(ChatModel dashscopeChatModel) {
         // 初始化基于文件的对话记忆
-        String fileDir = System.getProperty("user.dir") + "/chat-memory";
+        String fileDir = System.getProperty("user.dir") + "/temp/chat-memory";
         ChatMemory chatMemory = new FileBasedChatMemory(fileDir);
         chatClient = ChatClient.builder(dashscopeChatModel)
                 .defaultSystem(SYSTEM_PROMPT)
@@ -98,7 +101,7 @@ public class LoveApp {
     @Resource
     private RetrievalAugmentationAdvisor ragAdvisor;
     @Resource
-    private QueryRewriter queryRewriter;
+    private ToolCallback[] allTools;
     public String doChatWithRag(String message, String chatId) {
         ChatResponse chatResponse = chatClient
                 .prompt()
@@ -107,6 +110,7 @@ public class LoveApp {
 //                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
                 //使用RetrievalAugmentationAdvisor
                 .advisors(ragAdvisor)
+                .tools(allTools)  //工具
                 .call()
                 .chatResponse();
         String content = chatResponse.getResult().getOutput().getText();
