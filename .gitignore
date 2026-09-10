@@ -38,3 +38,10 @@ src/main/resources/application-local.yaml
 
 ### API Key ###
 src\main\java\com\pp\pprism\demo\invoke\TestApiKey.java
+
+### Playwright MCP cache ###
+.playwright-mcp/
+
+### JVM crash logs ###
+hs_err_pid*.log
+replay_pid*.log
