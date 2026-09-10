@@ -20,6 +20,7 @@ public class ToolRegistration {
         ResourceDownloadTool resourceDownloadTool = new ResourceDownloadTool();
         TerminalOperationTool terminalOperationTool = new TerminalOperationTool();
         PDFGenerationTool pdfGenerationTool = new PDFGenerationTool();
+        TerminateTool terminateTool = new TerminateTool();
         TimeTools timeTools = new TimeTools();
         return ToolCallbacks.from(
             fileOperationTool,
@@ -28,7 +29,8 @@ public class ToolRegistration {
             resourceDownloadTool,
             terminalOperationTool,
             pdfGenerationTool,
-            timeTools
+            timeTools,
+            terminateTool
         );
     }
 }
