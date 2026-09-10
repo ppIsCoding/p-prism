@@ -20,9 +20,11 @@ import org.springframework.ai.chat.model.ChatResponse;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
 import org.springframework.ai.rag.preretrieval.query.transformation.QueryTransformer;
 import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.tool.ToolCallbacks;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -100,8 +102,32 @@ public class LoveApp {
     }
     @Resource
     private RetrievalAugmentationAdvisor ragAdvisor;
+    // 和 Spring AI 的工具进行整合
+    @Autowired
+    private ToolCallbackProvider mcpToolCallbackProvider;
+
     @Resource
     private ToolCallback[] allTools;
+
+    /**
+     * MCP工具调用（不走RAG，避免空上下文替换用户消息）
+     */
+    public String doChatWithTools(String message, String chatId) {
+        ToolCallback[] mergedTools = java.util.stream.Stream.concat(
+                java.util.Arrays.stream(allTools),
+                java.util.Arrays.stream(mcpToolCallbackProvider.getToolCallbacks())
+        ).toArray(ToolCallback[]::new);
+        ChatResponse chatResponse = chatClient
+                .prompt()
+                .user(message)
+                .tools(mergedTools)
+                .call()
+                .chatResponse();
+        String content = chatResponse.getResult().getOutput().getText();
+        log.info("content: {}", content);
+        return content;
+    }
+
     public String doChatWithRag(String message, String chatId) {
         ChatResponse chatResponse = chatClient
                 .prompt()
@@ -110,7 +136,7 @@ public class LoveApp {
 //                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
                 //使用RetrievalAugmentationAdvisor
                 .advisors(ragAdvisor)
-                .tools(allTools)  //工具
+                .tools(allTools, mcpToolCallbackProvider.getToolCallbacks())  //工具
                 .call()
                 .chatResponse();
         String content = chatResponse.getResult().getOutput().getText();

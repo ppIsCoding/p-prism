@@ -4,6 +4,10 @@ spring:
   application:
     name: P-Prism
   ai:
+    mcp:
+      client:
+        stdio:
+          servers-configuration: classpath:mcp-server.json
     dashscope:
       api-key: ${AI_DASHSCOPE_API_KEY}
       chat:
