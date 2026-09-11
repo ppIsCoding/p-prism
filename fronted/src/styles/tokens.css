@@ -1,0 +1,38 @@
+:root {
+  /* Typefaces */
+  --font-display: 'Newsreader', 'Noto Serif SC', 'Songti SC', 'SimSun', Georgia, serif;
+  --font-ui: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB',
+    'Microsoft YaHei', 'Helvetica Neue', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+
+  /* Canvas — warm ivory paper, quiet and flat */
+  --bg: #f4f2ed;
+  --surface: #ffffff;
+  --surface-2: #f7f5f1;
+  --ink: #1c1b18;
+  --ink-soft: #57544e;
+  --ink-mute: #98948b;
+  --line: rgba(28, 27, 24, 0.1);
+  --line-strong: rgba(28, 27, 24, 0.22);
+
+  /* App accent — overridden per data-app, used sparingly */
+  --accent: #8a8578;
+  --accent-soft: #ebe8e1;
+  --accent-ink: #33312c;
+
+  --radius: 14px;
+  --radius-lg: 18px;
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-app='love'] {
+  --accent: #bf7d96;
+  --accent-soft: #f1e4e8;
+  --accent-ink: #5c2f3f;
+}
+
+[data-app='manus'] {
+  --accent: #6d8fb2;
+  --accent-soft: #e3eaf1;
+  --accent-ink: #2c4053;
+}
