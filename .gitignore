@@ -4,6 +4,7 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 temp
+temp/
 
 ### STS ###
 .apt_generated
@@ -15,7 +16,7 @@ temp
 .sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
+.idea/
 *.iws
 *.iml
 *.ipr
@@ -33,14 +34,24 @@ build/
 ### VS Code ###
 .vscode/
 
-### Local config (contains secrets) ###
-src/main/resources/application-local.yaml
-
-### API Key ###
-src\main\java\com\pp\pprism\demo\invoke\TestApiKey.java
+### Local config with secrets (never commit) ###
+application-local.yaml
+**/application-local.yaml
+*.local
+.env.local
+**/.env.local
 
 ### Playwright MCP cache ###
 .playwright-mcp/
+
+### Frontend ###
+fronted/node_modules/
+fronted/dist/
+fronted/dev.log
+
+### Logs ###
+*.log
+logs/
 
 ### JVM crash logs ###
 hs_err_pid*.log

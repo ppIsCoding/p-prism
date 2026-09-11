@@ -31,7 +31,11 @@ public class ToolCallAgent extends ReActAgent {
     private final ToolCallback[] availableTools;
   
     // 保存了工具调用信息的响应  
-    private ChatResponse toolCallChatResponse;
+    private ChatResponse toolCallChatResponse;  
+
+    // 最近一次思考的文本输出，用于无工具调用时返回最终回答  
+    private String lastThinkResult;  
+
   
     // 工具调用管理者  
     private final ToolCallingManager toolCallingManager;
@@ -77,6 +81,7 @@ public class ToolCallAgent extends ReActAgent {
             AssistantMessage assistantMessage = chatResponse.getResult().getOutput();
             // 输出提示信息
             String result = assistantMessage.getText();
+            this.lastThinkResult = result;
             // 获取工具调用信息
             List<AssistantMessage.ToolCall> toolCallList = assistantMessage.getToolCalls();
             log.info(getName() + "的思考: " + result);
@@ -92,6 +97,8 @@ public class ToolCallAgent extends ReActAgent {
             if (toolCallList.isEmpty()) {
                 // 只有不调用工具时，才记录助手消息
                 getMessageList().add(assistantMessage);
+                // 模型未调用任何工具，说明已经给出最终回答，结束代理循环
+                setState(AgentState.FINISHED);
                 return false;
             } else {
                 // 需要调用工具时，无需记录助手消息，因为调用工具时会自动记录
@@ -100,9 +107,31 @@ public class ToolCallAgent extends ReActAgent {
         } catch (Exception e) {
             log.error(getName() + "的思考过程遇到了问题: " + e.getMessage());
             // 这里可以让大模型进行错误重试处理
-            getMessageList().add(
-                    new AssistantMessage("处理时遇到错误: " + e.getMessage()));
+            String errorMsg = "处理时遇到错误: " + e.getMessage();
+            getMessageList().add(new AssistantMessage(errorMsg));
+            this.lastThinkResult = errorMsg;
             return false;
+        }
+    }
+
+    /**
+     * 执行单个步骤：思考后决定是否调用工具。
+     * 若无需行动，直接返回模型给出的最终文本，避免只输出占位提示而丢失回答。
+     */
+    @Override
+    public String step() {
+        try {
+            boolean shouldAct = think();
+            if (!shouldAct) {
+                if (lastThinkResult == null || lastThinkResult.isBlank()) {
+                    return "思考完成 - 无需行动";
+                }
+                return lastThinkResult;
+            }
+            return act();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "步骤执行失败: " + e.getMessage();
         }
     }
 
