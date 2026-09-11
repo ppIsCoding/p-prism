@@ -29,7 +29,7 @@ public class DashScopeChatModelConfig {
         DashScopeApi api = new DashScopeApi("https://dashscope.aliyuncs.com", apiKey, null,
                 restClientBuilder, WebClient.builder(), RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
         DashScopeChatOptions options = DashScopeChatOptions.builder()
-                .withModel("qwen3.8-27b")
+                .withModel("qwen3.7-flash-2026-07-15")
                 .withMultiModel(true)
                 .build();
         return new DashScopeChatModel(api, options);
