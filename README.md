@@ -290,6 +290,15 @@ $env:SEARCH_API_KEY="xxxxxxxx"
 mvnw.cmd spring-boot:run
 ```
 
+如果只是本地调前端、暂时不需要 RAG 和 PostgreSQL，可以启用 `no-rag` profile：
+
+```bash
+# Windows
+mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=local,no-rag"
+```
+
+该模式会跳过 `RagConfig` 和 `PgVectorVectorStoreConfig`，基础对话和 PManus 仍可正常使用。
+
 默认地址：
 
 ```text
@@ -342,14 +351,14 @@ http://localhost:5173
 | `server.servlet.context-path` | 全局接口前缀 | `/api` |
 | `spring.profiles.active` | 激活的配置环境 | `local` |
 | `spring.ai.dashscope.api-key` | DashScope API Key | `${AI_DASHSCOPE_API_KEY}` |
-| `spring.ai.dashscope.chat.options.model` | 对话模型 | Qwen 系列 |
+| `spring.ai.dashscope.chat.options.model` | 对话模型，可用 `AI_CHAT_MODEL` 覆盖 | `qwen4-max` |
 | `spring.datasource.url` | PostgreSQL 连接 | `jdbc:postgresql://localhost:5433/p-prism` |
 | `spring.datasource.username` | 数据库用户名 | `postgres` |
 | `spring.datasource.password` | 数据库密码 | `root` |
 | `spring.ai.vectorstore.pgvector.*` | 向量索引 / 维度 / 距离算法 | HNSW、1024、COSINE |
 | `search-api.api-key` | SearchAPI 搜索 Key | 无默认值，必须配置 |
 
-模型的实际创建位置在 `config/DashScopeChatModelConfig.java`，如需切换模型，修改其中的 `withModel(...)`，或调整 `application.yaml` 中的模型配置。
+模型的实际创建位置在 `config/DashScopeChatModelConfig.java`。默认模型由 `AI_CHAT_MODEL` 控制，候选模型清单在 `application.yaml` 的 `p-prism.ai.models` 中；接口也可以通过 `model` 参数临时指定模型，`GET /api/ai/models` 可查看全部可选值。
 
 RAG 参数位于 `config/RagConfig.java`：
 
@@ -371,6 +380,7 @@ RAG 参数位于 `config/RagConfig.java`：
 | 方法 | 路径 | 说明 | 返回 |
 | --- | --- | --- | --- |
 | `GET` | `/api/health/` | 健康检查 | `BaseResponse<String>` |
+| `GET` | `/api/ai/models` | 可用对话模型列表 | `BaseResponse<ModelInfo>` |
 | `GET` | `/api/ai/love_app/chat/sync` | 恋爱大师同步对话 | `BaseResponse<String>` |
 | `GET` | `/api/ai/love_app/chat/sse` | 恋爱大师流式对话 | `text/event-stream` |
 | `GET` | `/api/ai/love_app/chat/sse/emitter` | 基于 `SseEmitter` 的流式对话 | `text/event-stream` |
@@ -382,6 +392,7 @@ RAG 参数位于 `config/RagConfig.java`：
 | --- | --- | --- |
 | `message` | 是 | 用户消息 / 任务描述，不能为空 |
 | `chatId` | 否 | 会话 ID；不传会自动生成，用于恋爱大师的多轮记忆 |
+| `model` | 否 | 仅恋爱大师对话接口可用；不传使用 `p-prism.ai.default-model`，可选值见 `/api/ai/models` |
 
 ### 调用示例
 
@@ -389,8 +400,11 @@ RAG 参数位于 `config/RagConfig.java`：
 # 同步对话
 curl "http://localhost:8123/api/ai/love_app/chat/sync?message=我最近和对象总是吵架&chatId=demo-1"
 
-# 流式对话
-curl -N "http://localhost:8123/api/ai/love_app/chat/sse?message=你好&chatId=demo-1"
+# 查看可用模型
+curl "http://localhost:8123/api/ai/models"
+
+# 流式对话（指定模型）
+curl -N "http://localhost:8123/api/ai/love_app/chat/sse?message=你好&chatId=demo-1&model=qwen3.8-flash"
 
 # 智能体执行任务
 curl -N "http://localhost:8123/api/ai/manus/chat?message=帮我搜索今天的科技新闻并整理成简报"

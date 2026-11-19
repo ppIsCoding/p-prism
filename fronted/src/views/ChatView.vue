@@ -1,8 +1,9 @@
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import ChatBubble from '@/components/ChatBubble.vue'
 import ChatComposer from '@/components/ChatComposer.vue'
+import http from '@/api/http'
 import { APPS } from '@/config/apps'
 import { useChat } from '@/composables/useChat'
 
@@ -17,13 +18,28 @@ if (!app) {
   router.replace('/')
 }
 
+const models = ref([])
+const model = ref('')
+
 const { messages, isStreaming, errorMessage, chatId, send, stop, newSession } =
-  useChat(app)
+  useChat(app, { model })
 
 const draft = ref('')
 const scroller = ref(null)
 const pinned = ref(true)
 const sessionCopied = ref(false)
+
+onMounted(async () => {
+  if (app.id !== 'love') return
+  try {
+    const res = await http.get('/ai/models')
+    const list = res?.data?.models || []
+    models.value = list
+    model.value = res?.data?.defaultModel || list[0] || ''
+  } catch {
+    /* 模型列表获取失败时使用后端默认模型 */
+  }
+})
 
 const isStepwise = computed(() => app.streamMode === 'segments')
 const statusText = computed(() => {
@@ -114,6 +130,13 @@ watch(
         </template>
       </div>
 
+      <div v-if="app.id === 'love' && models.length" class="panel__model">
+        <span class="label">模型</span>
+        <select v-model="model" class="panel__select" aria-label="选择模型">
+          <option v-for="item in models" :key="item" :value="item">{{ item }}</option>
+        </select>
+      </div>
+
       <div class="panel__foot">
         <button class="btn btn--solid panel__new" type="button" @click="onNewSession">
           新建对话
@@ -123,6 +146,12 @@ watch(
     </aside>
 
     <main class="room">
+      <div class="room__mobile">
+        <router-link to="/" class="room__mobile-back">← 返回</router-link>
+        <span class="room__mobile-name">{{ app.name }}</span>
+        <button class="room__mobile-new" type="button" @click="onNewSession">新建</button>
+      </div>
+
       <header class="room__top">
         <div class="room__state">
           <span class="room__dot" :class="{ 'room__dot--live': isStreaming }" />
@@ -281,6 +310,25 @@ watch(
   color: var(--ink);
 }
 
+.panel__model {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.panel__select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  outline: none;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: 12.5px;
+}
+.panel__select:focus {
+  border-color: var(--ink-mute);
+}
+
 .panel__foot {
   margin-top: auto;
   display: flex;
@@ -310,6 +358,9 @@ watch(
   height: 100%;
   overflow: hidden;
   background: var(--surface);
+}
+.room__mobile {
+  display: none;
 }
 .room__top {
   flex-shrink: 0;
@@ -442,8 +493,26 @@ watch(
   .panel {
     display: none;
   }
+  .room__mobile {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 13px 20px;
+    border-bottom: 1px solid var(--line);
+  }
+  .room__mobile-back,
+  .room__mobile-new {
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+  .room__mobile-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ink);
+  }
   .room__top {
-    padding: 16px 20px;
+    padding: 12px 20px;
   }
   .room__inner {
     padding: 26px 20px 16px;

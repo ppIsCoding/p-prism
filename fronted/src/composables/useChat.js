@@ -7,7 +7,7 @@ import { createChatId, createMessageId } from '@/utils/id'
  *
  * @param {import('@/config/apps').APPS[keyof typeof APPS]} app
  */
-export function useChat(app) {
+export function useChat(app, options = {}) {
   const messages = ref([])
   const isStreaming = ref(false)
   const errorMessage = ref('')
@@ -60,6 +60,8 @@ export function useChat(app) {
 
     const params = { message: content }
     if (app.sessionId) params.chatId = chatId.value
+    const selectedModel = options.model?.value
+    if (selectedModel) params.model = selectedModel
 
     try {
       await streamChat({

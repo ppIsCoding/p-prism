@@ -12,7 +12,8 @@ spring:
       api-key: ${AI_DASHSCOPE_API_KEY}
       chat:
         options:
-          model: qwen3.7-flash-2026-07-15
+          # 可通过环境变量 AI_CHAT_MODEL 切换模型，避免每次改代码
+          model: ${AI_CHAT_MODEL:qwen4-max}
           multi-model: true
     vectorstore:
       pgvector:
@@ -28,6 +29,26 @@ server:
   port: 8123
   servlet:
     context-path: /api
+# 可用模型清单：接口可通过 model 参数指定，默认使用 default-model
+p-prism:
+  ai:
+    default-model: ${AI_CHAT_MODEL:qwen4-max}
+    models:
+      - qwen4-max
+      - qwen3.8-flash
+      - kimi-k3.1-pro
+      - qwen3.8-max-0902
+      - deepseek-v4.1-flash-1017
+      - deepseek-v4.1-flash
+      - glm-5.3
+      - qwen3.8-omni-flash
+      - qwen3.8-omni-flash-realtime
+      - qwen-mt-uni
+    # 当前应用暂未使用图片生成模型，仅登记备查
+    image-models:
+      - qwen-image-2.1-pro
+      - qwen-mt-image-2.0
+      - qwen-image-2.1-turbo
 # springdoc-openapi
 springdoc:
   group-configs:

@@ -3,7 +3,9 @@ package com.pp.pprism.controller;
 import com.pp.pprism.agent.model.PManus;
 import com.pp.pprism.app.LoveApp;
 import com.pp.pprism.common.BaseResponse;
+import com.pp.pprism.common.ModelInfo;
 import com.pp.pprism.common.ResultUtils;
+import com.pp.pprism.config.ChatModelCatalog;
 import jakarta.annotation.Resource;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.ai.chat.model.ChatModel;
@@ -35,6 +37,19 @@ public class AiController {
     @Resource
     private ChatModel dashscopeChatModel;
 
+    @Resource
+    private ChatModelCatalog chatModelCatalog;
+
+    /**
+     * 当前可用的对话模型，前端可据此渲染模型选择器。
+     */
+    @GetMapping("/models")
+    public BaseResponse<ModelInfo> listModels() {
+        return ResultUtils.success(new ModelInfo(
+                chatModelCatalog.getDefaultModel(),
+                chatModelCatalog.getModels()));
+    }
+
     /**
      * 会话 id 缺失时兜底生成，避免记忆组件因 null 抛异常。
      */
@@ -45,25 +60,30 @@ public class AiController {
     @GetMapping("/love_app/chat/sync")
     public BaseResponse<String> doChatWithLoveAppSync(
             @RequestParam("message") @NotBlank(message = "消息不能为空") String message,
-            @RequestParam(value = "chatId", required = false) String chatId) {
-        return ResultUtils.success(loveApp.doChat(message, resolveChatId(chatId)));
+            @RequestParam(value = "chatId", required = false) String chatId,
+            @RequestParam(value = "model", required = false) String model) {
+        return ResultUtils.success(loveApp.doChat(
+                message, resolveChatId(chatId), chatModelCatalog.resolve(model)));
     }
 
     @GetMapping(value = "/love_app/chat/sse", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> doChatWithLoveAppSSE(
             @RequestParam("message") @NotBlank(message = "消息不能为空") String message,
-            @RequestParam(value = "chatId", required = false) String chatId) {
-        return loveApp.doChatByStream(message, resolveChatId(chatId));
+            @RequestParam(value = "chatId", required = false) String chatId,
+            @RequestParam(value = "model", required = false) String model) {
+        return loveApp.doChatByStream(
+                message, resolveChatId(chatId), chatModelCatalog.resolve(model));
     }
 
     @GetMapping("/love_app/chat/sse/emitter")
     public SseEmitter doChatWithLoveAppSseEmitter(
             @RequestParam("message") @NotBlank(message = "消息不能为空") String message,
-            @RequestParam(value = "chatId", required = false) String chatId) {
+            @RequestParam(value = "chatId", required = false) String chatId,
+            @RequestParam(value = "model", required = false) String model) {
         // 创建一个超时时间较长的 SseEmitter
         SseEmitter emitter = new SseEmitter(180000L); // 3分钟超时
         // 获取 Flux 数据流并直接订阅
-        loveApp.doChatByStream(message, resolveChatId(chatId))
+        loveApp.doChatByStream(message, resolveChatId(chatId), chatModelCatalog.resolve(model))
                 .subscribe(
                         // 处理每条消息
                         chunk -> {

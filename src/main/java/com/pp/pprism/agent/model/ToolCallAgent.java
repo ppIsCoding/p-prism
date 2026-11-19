@@ -106,10 +106,11 @@ public class ToolCallAgent extends ReActAgent {
             }
         } catch (Exception e) {
             log.error(getName() + "的思考过程遇到了问题: " + e.getMessage());
-            // 这里可以让大模型进行错误重试处理
+            // 模型调用失败时直接终止，避免在同一个错误上反复重试耗尽步数
             String errorMsg = "处理时遇到错误: " + e.getMessage();
             getMessageList().add(new AssistantMessage(errorMsg));
             this.lastThinkResult = errorMsg;
+            setState(AgentState.ERROR);
             return false;
         }
     }
@@ -128,9 +129,17 @@ public class ToolCallAgent extends ReActAgent {
                 }
                 return lastThinkResult;
             }
-            return act();
+            String actionResult = act();
+            if (lastThinkResult == null || lastThinkResult.isBlank()
+                    || lastThinkResult.equals(actionResult)) {
+                return actionResult;
+            }
+            // 模型可能在同一轮既给出回答又调用工具（例如最后调用 doTerminate），
+            // 两块内容都要返回，否则用户只能看到工具结果。
+            return lastThinkResult + "\n\n" + actionResult;
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error(getName() + "的步骤执行失败", e);
+            setState(AgentState.ERROR);
             return "步骤执行失败: " + e.getMessage();
         }
     }

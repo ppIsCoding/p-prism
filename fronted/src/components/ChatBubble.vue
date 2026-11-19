@@ -127,6 +127,11 @@ async function copy() {
 .meta__copy:hover {
   color: var(--ink);
 }
+@media (hover: none) {
+  .meta__copy {
+    opacity: 1;
+  }
+}
 
 .bubble {
   padding: 14px 18px;

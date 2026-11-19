@@ -23,13 +23,15 @@ public class DashScopeChatModelConfig {
 
     @Bean
     @Primary
-    public DashScopeChatModel dashscopeChatModel(@Value("${spring.ai.dashscope.api-key}") String apiKey) {
+    public DashScopeChatModel dashscopeChatModel(
+            @Value("${spring.ai.dashscope.api-key}") String apiKey,
+            @Value("${spring.ai.dashscope.chat.options.model:qwen4-max}") String model) {
         RestClient.Builder restClientBuilder = RestClient.builder()
                 .requestFactory(new MultimodalRewritingRequestFactory());
         DashScopeApi api = new DashScopeApi("https://dashscope.aliyuncs.com", apiKey, null,
                 restClientBuilder, WebClient.builder(), RetryUtils.DEFAULT_RESPONSE_ERROR_HANDLER);
         DashScopeChatOptions options = DashScopeChatOptions.builder()
-                .withModel("qwen3.7-flash-2026-07-15")
+                .withModel(model)
                 .withMultiModel(true)
                 .build();
         return new DashScopeChatModel(api, options);

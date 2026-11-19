@@ -1,5 +1,6 @@
 package com.pp.pprism.app;
 
+import com.alibaba.cloud.ai.dashscope.chat.DashScopeChatOptions;
 import com.pp.pprism.advisor.MyLoggerAdvisor;
 import com.pp.pprism.chatmemory.FileBasedChatMemory;
 import com.pp.pprism.rag.LoveAppContextualQueryAugmenterFactory;
@@ -17,6 +18,7 @@ import org.springframework.ai.chat.memory.ChatMemory;
 import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.model.function.FunctionCallback;
 import org.springframework.ai.rag.generation.augmentation.ContextualQueryAugmenter;
 import org.springframework.ai.rag.preretrieval.query.transformation.QueryTransformer;
 import org.springframework.ai.tool.ToolCallback;
@@ -26,6 +28,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import reactor.core.publisher.Flux;
 
 import java.util.List;
@@ -61,17 +64,39 @@ public class LoveApp {
 
 
     /**
+     * 组装带会话记忆的 Prompt；model 为空时使用 ChatModel 的默认模型。
+     */
+    private ChatClient.ChatClientRequestSpec promptWithModel(String message, String chatId, String model) {
+        ChatClient.ChatClientRequestSpec request = chatClient
+                .prompt()
+                .user(message)
+                .advisors(advisorSpec -> advisorSpec
+                        .param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
+                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10));
+        if (StringUtils.hasText(model)) {
+            request = request.options(DashScopeChatOptions.builder()
+                    .withModel(model)
+                    .withMultiModel(true)
+                    .build());
+        }
+        return request;
+    }
+
+    /**
      * AI基础对话功能（记忆可以保存10轮对话）
      * @param message
      * @param chatId
      * @return
      */
     public String doChat(String message, String chatId) {
-        ChatResponse response = chatClient
-                .prompt()
-                .user(message)
-                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+        return doChat(message, chatId, null);
+    }
+
+    /**
+     * 指定模型的基础对话。
+     */
+    public String doChat(String message, String chatId, String model) {
+        ChatResponse response = promptWithModel(message, chatId, model)
                 .call()
                 .chatResponse();
         String content = response.getResult().getOutput().getText();
@@ -101,27 +126,37 @@ public class LoveApp {
         log.info("loveReport: {}", loveReport);
         return loveReport;
     }
-    @Resource
+    @Autowired(required = false)
     private RetrievalAugmentationAdvisor ragAdvisor;
     // 和 Spring AI 的工具进行整合
-    @Autowired
+    @Autowired(required = false)
     private ToolCallbackProvider mcpToolCallbackProvider;
 
     @Resource
     private ToolCallback[] allTools;
 
     /**
+     * MCP 未启用时返回空数组，保证本地 no-rag 模式也能启动。
+     */
+    private FunctionCallback[] mcpTools() {
+        return mcpToolCallbackProvider == null
+                ? new FunctionCallback[0]
+                : mcpToolCallbackProvider.getToolCallbacks();
+    }
+
+    /**
      * MCP工具调用（不走RAG，避免空上下文替换用户消息）
      */
     public String doChatWithTools(String message, String chatId) {
-        ToolCallback[] mergedTools = java.util.stream.Stream.concat(
-                java.util.Arrays.stream(allTools),
-                java.util.Arrays.stream(mcpToolCallbackProvider.getToolCallbacks())
-        ).toArray(ToolCallback[]::new);
-        ChatResponse chatResponse = chatClient
+        ChatClient.ChatClientRequestSpec request = chatClient
                 .prompt()
                 .user(message)
-                .tools(mergedTools)
+                .tools(allTools);
+        FunctionCallback[] mcpTools = mcpTools();
+        if (mcpTools.length > 0) {
+            request = request.tools(mcpTools);
+        }
+        ChatResponse chatResponse = request
                 .call()
                 .chatResponse();
         String content = chatResponse.getResult().getOutput().getText();
@@ -130,14 +165,23 @@ public class LoveApp {
     }
 
     public String doChatWithRag(String message, String chatId) {
-        ChatResponse chatResponse = chatClient
+        if (ragAdvisor == null) {
+            log.warn("RAG 未启用，回退到基础对话");
+            return doChat(message, chatId);
+        }
+        ChatClient.ChatClientRequestSpec request = chatClient
                 .prompt()
                 .user(message)
                 // 应用知识库问答
 //                .advisors(new QuestionAnswerAdvisor(loveAppVectorStore))
                 //使用RetrievalAugmentationAdvisor
                 .advisors(ragAdvisor)
-                .tools(allTools, mcpToolCallbackProvider.getToolCallbacks())  //工具
+                .tools(allTools);
+        FunctionCallback[] mcpTools = mcpTools();
+        if (mcpTools.length > 0) {
+            request = request.tools(mcpTools);
+        }
+        ChatResponse chatResponse = request
                 .call()
                 .chatResponse();
         String content = chatResponse.getResult().getOutput().getText();
@@ -146,11 +190,14 @@ public class LoveApp {
     }
 
     public Flux<String> doChatByStream(String message, String chatId) {
-        return chatClient
-                .prompt()
-                .user(message)
-                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+        return doChatByStream(message, chatId, null);
+    }
+
+    /**
+     * 指定模型的流式对话。
+     */
+    public Flux<String> doChatByStream(String message, String chatId, String model) {
+        return promptWithModel(message, chatId, model)
                 .stream()
                 .content();
     }

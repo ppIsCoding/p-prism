@@ -10,6 +10,7 @@ import org.springframework.ai.vectorstore.pgvector.PgVectorStore;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -26,6 +27,7 @@ import static org.springframework.ai.vectorstore.pgvector.PgVectorStore.PgIndexT
 
 @Slf4j
 @Configuration
+@Profile("!no-rag")
 public class PgVectorVectorStoreConfig {
 
     private static final String VECTOR_TABLE_NAME = "vector_store";
